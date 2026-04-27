@@ -1,0 +1,740 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { 
+  Languages, 
+  Image as ImageIcon, 
+  Keyboard, 
+  ArrowRightLeft, 
+  Copy, 
+  Check, 
+  Upload, 
+  X,
+  Loader2,
+  Sparkles,
+  RefreshCw,
+  Mic,
+  MicOff,
+  Volume2,
+  Star,
+  History as HistoryIcon,
+  Trash2,
+  ExternalLink
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useDropzone } from 'react-dropzone';
+import { translateText, translateImage, LANGUAGES, Language, TextSegment } from './services/geminiService';
+import { TranslationEntry } from './types';
+
+// Speech Recognition Type Definitions
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: any) => void;
+  onend: () => void;
+}
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
+  }
+}
+
+type Mode = 'typing' | 'image';
+type Tab = 'translator' | 'history' | 'saved';
+
+export default function App() {
+  const [tab, setTab] = useState<Tab>('translator');
+  const [mode, setMode] = useState<Mode>('typing');
+  const [inputText, setInputText] = useState('');
+  const [image, setImage] = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string>('');
+  const [sourceLang, setSourceLang] = useState<Language>('English');
+  const [targetLang, setTargetLang] = useState<Language>('Hindi');
+  const [output, setOutput] = useState('');
+  const [segments, setSegments] = useState<TextSegment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [history, setHistory] = useState<TranslationEntry[]>(() => {
+    const saved = localStorage.getItem('translation_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [savedTranslations, setSavedTranslations] = useState<TranslationEntry[]>(() => {
+    const saved = localStorage.getItem('saved_translations');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('translation_history', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem('saved_translations', JSON.stringify(savedTranslations));
+  }, [savedTranslations]);
+
+  useEffect(() => {
+    if (tab === 'translator' && (inputText.trim() || image) && !isLoading) {
+      const timer = setTimeout(() => {
+        handleTranslate();
+      }, 500); // Small debounce
+      return () => clearTimeout(timer);
+    }
+  }, [sourceLang, targetLang]);
+
+  const recognitionRef = React.useRef<SpeechRecognition | null>(null);
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      
+      // Mapping languages for speech recognition
+      const langMap: Record<string, string> = {
+        'English': 'en-US',
+        'Hindi': 'hi-IN',
+        'Spanish': 'es-ES',
+        'French': 'fr-FR',
+        'Persian': 'fa-IR',
+        'Chinese': 'zh-CN',
+        'Arabic': 'ar-SA'
+      };
+
+      recognition.lang = langMap[sourceLang] || 'en-US';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join('');
+        setInputText(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setError(`Speech recognition error: ${event.error}`);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to start recognition:', err);
+      setIsListening(false);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  const speakText = (text: string, lang: Language) => {
+    if (!window.speechSynthesis) {
+      setError("Text-to-speech is not supported in this browser.");
+      return;
+    }
+
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Mapping languages for speech synthesis
+    const langMap: Record<string, string> = {
+      'English': 'en-US',
+      'Hindi': 'hi-IN',
+      'Spanish': 'es-ES',
+      'French': 'fr-FR',
+      'Persian': 'fa-IR',
+      'Chinese': 'zh-CN',
+      'Arabic': 'ar-SA'
+    };
+    
+    utterance.lang = langMap[lang] || 'en-US';
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImage(reader.result as string);
+        setImageMimeType(file.type);
+        setSegments([]);
+        setError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => onDrop(acceptedFiles),
+    accept: { 'image/*': [] },
+    multiple: false
+  });
+
+  const handleTranslate = async () => {
+    if (mode === 'typing' && !inputText.trim()) return;
+    if (mode === 'image' && !image) return;
+
+    setIsLoading(true);
+    setError(null);
+    setOutput('');
+    setSegments([]);
+
+    try {
+      let finalOutput = '';
+      let finalSegments: TextSegment[] = [];
+
+      if (mode === 'typing') {
+        finalOutput = await translateText(inputText, sourceLang, targetLang);
+      } else if (mode === 'image' && image) {
+        finalSegments = await translateImage(image, imageMimeType, sourceLang, targetLang);
+        if (finalSegments.length > 0) {
+          finalOutput = finalSegments.map(s => s.translation).join('\n');
+        } else {
+          setError("No text found in image.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      setOutput(finalOutput);
+      setSegments(finalSegments);
+
+      // Add to history
+      const newEntry: TranslationEntry = {
+        id: Math.random().toString(36).substring(7),
+        timestamp: Date.now(),
+        mode,
+        sourceLang,
+        targetLang,
+        inputText: mode === 'typing' ? inputText : '',
+        image: mode === 'image' ? image || undefined : undefined,
+        output: finalOutput,
+        segments: finalSegments.length > 0 ? finalSegments : undefined,
+        isSaved: false
+      };
+      setHistory(prev => [newEntry, ...prev].slice(0, 50)); // Keep last 50
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const swapLanguages = () => {
+    setSourceLang(targetLang);
+    setTargetLang(sourceLang);
+  };
+
+  const toggleSave = (entry?: TranslationEntry) => {
+    if (entry) {
+      // Toggle from history or elsewhere
+      if (entry.isSaved) {
+        setSavedTranslations(prev => prev.filter(t => t.id !== entry.id));
+        setHistory(prev => prev.map(t => t.id === entry.id ? { ...t, isSaved: false } : t));
+      } else {
+        const savedEntry = { ...entry, isSaved: true };
+        setSavedTranslations(prev => [savedEntry, ...prev]);
+        setHistory(prev => prev.map(t => t.id === entry.id ? { ...t, isSaved: true } : t));
+      }
+    } else {
+      // Toggle current translation
+      const currentEntry: TranslationEntry = {
+        id: Math.random().toString(36).substring(7),
+        timestamp: Date.now(),
+        mode,
+        sourceLang,
+        targetLang,
+        inputText: mode === 'typing' ? inputText : '',
+        image: mode === 'image' ? image || undefined : undefined,
+        output,
+        segments: segments.length > 0 ? segments : undefined,
+        isSaved: true
+      };
+      setSavedTranslations(prev => [currentEntry, ...prev]);
+    }
+  };
+
+  const deleteHistory = (id: string) => {
+    setHistory(prev => prev.filter(t => t.id !== id));
+  };
+
+  const loadEntry = (entry: TranslationEntry) => {
+    setTab('translator');
+    setMode(entry.mode);
+    setSourceLang(entry.sourceLang);
+    setTargetLang(entry.targetLang);
+    if (entry.mode === 'typing') {
+      setInputText(entry.inputText);
+      setImage(null);
+      setSegments([]);
+    } else {
+      setInputText('');
+      setImage(entry.image || null);
+      setSegments(entry.segments || []);
+    }
+    setOutput(entry.output);
+  };
+
+  const clearInput = () => {
+    setInputText('');
+    setImage(null);
+    setSegments([]);
+    setOutput('');
+    setError(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+      {/* Header */}
+      <header className="h-16 flex items-center justify-between px-4 md:px-10 bg-white border-b border-slate-200 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
+            <Languages className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-slate-900">MiniTranslator</span>
+        </div>
+        <nav className="hidden md:flex gap-6 text-sm font-medium text-slate-500">
+          <button 
+            onClick={() => setTab('translator')}
+            className={`transition-colors cursor-pointer ${tab === 'translator' ? 'text-indigo-600 border-b-2 border-indigo-600 pb-1' : 'hover:text-slate-900'}`}
+          >
+            Translator
+          </button>
+          <button 
+            onClick={() => setTab('history')}
+            className={`transition-colors cursor-pointer ${tab === 'history' ? 'text-indigo-600 border-b-2 border-indigo-600 pb-1' : 'hover:text-slate-900'}`}
+          >
+            History
+          </button>
+          <button 
+            onClick={() => setTab('saved')}
+            className={`transition-colors cursor-pointer ${tab === 'saved' ? 'text-indigo-600 border-b-2 border-indigo-600 pb-1' : 'hover:text-slate-900'}`}
+          >
+            Saved
+          </button>
+        </nav>
+      </header>
+
+      {/* Main Workspace */}
+      <main className="flex-1 p-4 md:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+        {tab === 'translator' ? (
+          <>
+            {/* Mode Toggle & Language Selectors */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="flex bg-slate-200/50 p-1 rounded-xl w-full max-w-[256px]">
+            <button
+              onClick={() => setMode('typing')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
+                mode === 'typing' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 cursor-pointer'
+              }`}
+            >
+              Typing
+            </button>
+            <button
+              onClick={() => setMode('image')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
+                mode === 'image' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 cursor-pointer'
+              }`}
+            >
+              Image
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 md:gap-4 w-full lg:w-auto">
+            <div className="flex-1 lg:flex-none flex items-center gap-2">
+              <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-slate-400 font-bold whitespace-nowrap">From</span>
+              <div className="relative flex-1">
+                <select
+                  value={sourceLang}
+                  onChange={(e) => setSourceLang(e.target.value as Language)}
+                  className="w-full lg:w-36 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
+                >
+                  {LANGUAGES.map(lang => (
+                    <option key={lang} value={lang}>{lang}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <button 
+              onClick={swapLanguages}
+              className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors shrink-0 cursor-pointer"
+            >
+              <ArrowRightLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex-1 lg:flex-none flex items-center gap-2">
+              <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-slate-400 font-bold whitespace-nowrap">To</span>
+              <div className="relative flex-1">
+                <select
+                  value={targetLang}
+                  onChange={(e) => setTargetLang(e.target.value as Language)}
+                  className="w-full lg:w-36 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
+                >
+                  {LANGUAGES.map(lang => (
+                    <option key={lang} value={lang}>{lang}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Translation Interface */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[400px]">
+          {/* Input Section */}
+          <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Input {mode === 'typing' ? 'Text' : 'Image'}</span>
+              <button 
+                onClick={clearInput}
+                className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest hover:underline cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+            
+            <div className="flex-1 relative">
+              <AnimatePresence mode="wait">
+                {mode === 'typing' ? (
+                  <motion.div
+                    key="typing-area"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="h-full"
+                  >
+                    <textarea
+                      placeholder="Type or paste your text here..."
+                      className="w-full h-full resize-none text-xl leading-relaxed outline-none text-slate-700 placeholder:text-slate-300 min-h-[200px]"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                    />
+                    {isListening && (
+                      <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none rounded-xl">
+                        <div className="flex gap-1 items-end h-8 mb-4">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <motion.div
+                              key={i}
+                              animate={{ height: [8, 32, 8] }}
+                              transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }}
+                              className="w-1.5 bg-indigo-600 rounded-full"
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest animate-pulse">Listening & Transcribing...</span>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="image-area"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="h-full min-h-[200px]"
+                  >
+                    {!image ? (
+                      <div 
+                        {...getRootProps()} 
+                        className={`h-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+                          isDragActive ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-400 bg-slate-50'
+                        }`}
+                      >
+                        <input {...getInputProps()} />
+                        <Upload className="w-8 h-8 text-indigo-600 mb-2" />
+                        <p className="text-xs font-semibold text-slate-500">Drop image or click to upload</p>
+                      </div>
+                    ) : (
+                      <div className="relative h-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+                        <div className="relative inline-block">
+                          <img 
+                            src={image} 
+                            alt="Upload" 
+                            className="max-w-full max-h-[500px] object-contain" 
+                          />
+                          {/* Visual Overlay */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            {segments.map((segment, idx) => (
+                              <div
+                                key={idx}
+                                className="absolute bg-white/90 backdrop-blur-sm px-1 py-0.5 rounded shadow-sm text-[10px] font-medium text-indigo-800 border border-indigo-200/50 flex items-center justify-center text-center leading-tight whitespace-pre-wrap"
+                                style={{
+                                  top: `${segment.boundingBox.y1 / 10}%`,
+                                  left: `${segment.boundingBox.x1 / 10}%`,
+                                  width: `${(segment.boundingBox.x2 - segment.boundingBox.x1) / 10}%`,
+                                  height: `${(segment.boundingBox.y2 - segment.boundingBox.y1) / 10}%`,
+                                }}
+                              >
+                                {segment.translation}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => { setImage(null); setSegments([]); }}
+                          className="absolute top-2 right-2 p-2 bg-white/90 backdrop-blur rounded-full text-slate-600 hover:text-red-500 shadow-sm cursor-pointer z-20"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  {mode === 'typing' ? `${inputText.length} / 5000 characters` : segments.length > 0 ? `${segments.length} segments detected` : 'AI Visual Extraction'}
+                </span>
+                {mode === 'typing' && (
+                  <button
+                    onClick={isListening ? stopListening : startListening}
+                    className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      isListening 
+                        ? 'bg-red-500 text-white shadow-lg shadow-red-200 scale-110' 
+                        : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'
+                    }`}
+                    title={isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    {isListening ? (
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ repeat: Infinity, duration: 1 }}
+                      >
+                        <MicOff className="w-3.5 h-3.5" />
+                      </motion.div>
+                    ) : (
+                      <Mic className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Output Section */}
+          <div className="flex flex-col bg-indigo-50 rounded-2xl shadow-sm border border-indigo-100 p-6 relative">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{targetLang} Translation</span>
+              {output && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => speakText(output, targetLang)}
+                    className="p-1.5 text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                    title="Read aloud"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={copyToClipboard}
+                    className="p-1.5 text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => toggleSave()}
+                    className="p-1.5 text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                    title="Save translation"
+                  >
+                    <Star className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 text-xl leading-relaxed text-slate-700 break-words overflow-y-auto">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
+                  <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                  <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Translating...</p>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                   <p className="text-sm font-medium text-red-500">{error}</p>
+                </div>
+              ) : output ? (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="whitespace-pre-wrap">
+                  {output}
+                </motion.div>
+              ) : (
+                <div className="flex items-center justify-center h-full opacity-25 select-none italic text-slate-400">
+                  Translation will appear here
+                </div>
+              )}
+            </div>
+
+            {output && (
+              <div className="mt-4 pt-4 border-t border-indigo-100/50 flex justify-end">
+                <button 
+                  onClick={handleTranslate}
+                  className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest flex items-center gap-1.5 hover:underline cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Regenerate
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="flex justify-center pb-8">
+          <button
+            onClick={handleTranslate}
+            disabled={isLoading || (mode === 'typing' ? !inputText.trim() : !image)}
+            className="group relative inline-flex items-center justify-center px-12 py-4 font-bold text-white transition-all duration-200 bg-indigo-600 rounded-full hover:bg-indigo-700 shadow-xl shadow-indigo-200 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 hover:-translate-y-1 cursor-pointer overflow-hidden"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <span className="relative">Translate Now</span>
+                <ArrowRightLeft className="w-5 h-5 ml-2 group-hover:rotate-180 transition-transform duration-500" />
+              </>
+            )}
+          </button>
+        </div>
+          </>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                {tab === 'history' ? <HistoryIcon className="w-5 h-5" /> : <Star className="w-5 h-5 text-yellow-500" />}
+                {tab === 'history' ? 'Translation History' : 'Saved Translations'}
+              </h2>
+              {tab === 'history' && history.length > 0 && (
+                <button 
+                  onClick={() => setHistory([])}
+                  className="text-xs font-bold text-red-500 uppercase tracking-widest hover:underline cursor-pointer"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(tab === 'history' ? history : savedTranslations).length === 0 ? (
+                <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-200 opacity-50">
+                   <p className="text-slate-400 font-medium">No entries yet</p>
+                </div>
+              ) : (
+                (tab === 'history' ? history : savedTranslations).map(entry => (
+                  <motion.div 
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    key={entry.id}
+                    className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3 group relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span>{entry.sourceLang} → {entry.targetLang}</span>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        {new Date(entry.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-600 line-clamp-2 italic mb-2">
+                        {entry.mode === 'typing' ? entry.inputText : '[Image Translation]'}
+                      </p>
+                      <p className="text-sm font-semibold text-slate-900 line-clamp-3">
+                        {entry.output}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => loadEntry(entry)}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 text-indigo-600 transition-colors cursor-pointer"
+                          title="Open/Re-translate"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => toggleSave(entry)}
+                          className={`p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer ${entry.isSaved ? 'text-yellow-500' : 'text-slate-400'}`}
+                          title={entry.isSaved ? "Unsave" : "Save"}
+                        >
+                          <Star className={`w-4 h-4 ${entry.isSaved ? 'fill-current' : ''}`} />
+                        </button>
+                      </div>
+                      {tab === 'history' && (
+                        <button 
+                          onClick={() => deleteHistory(entry.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="h-12 px-4 md:px-10 flex items-center justify-between bg-white border-t border-slate-100 shrink-0">
+        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Powered by Gemini AI Engine</p>
+        <div className="hidden sm:flex gap-6">
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Status: Optimal</span>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight underline cursor-pointer">API Docs</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+

@@ -1,0 +1,6 @@
+{
+  "name": "MiniTranslator",
+  "description": "A powerful translation app that handles text and image-based translation between English, Hindi, Spanish, French, and Persian using Gemini AI.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}
