@@ -28,7 +28,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const user = await AuthService.getCurrentUser();
         setState(prev => ({ ...prev, user, isLoading: false }));
       } catch (error) {
-        setState(prev => ({ ...prev, isLoading: false }));
+        console.error("Initial Auth Check Failed:", error);
+        setState(prev => ({ 
+          ...prev, 
+          isLoading: false, 
+          error: (error as Error).message || "Configuration error. Please check browser console." 
+        }));
       }
     };
 

@@ -58,19 +58,19 @@ export const VerifyOTP: React.FC = () => {
     <AuthLayout title="Verify OTP" subtitle={`We've sent a 6-digit code to ${email}.`}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {error && (
-          <div className="bg-red-50 text-red-500 text-xs p-3 rounded-xl border border-red-100 mb-2">
+          <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-xl border border-red-500/20 mb-2">
             {error}
           </div>
         )}
         
         <div className="relative">
-          <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <input
             type="text"
             placeholder="Enter 6-digit code"
             required
             maxLength={6}
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-center text-lg tracking-widest font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-center text-lg tracking-widest font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-white/20"
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
           />
@@ -79,7 +79,7 @@ export const VerifyOTP: React.FC = () => {
         <button
           type="submit"
           disabled={isLoading || otp.length !== 6}
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
+          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50 border border-white/10"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -93,14 +93,14 @@ export const VerifyOTP: React.FC = () => {
 
         <div className="text-center">
           {timer > 0 ? (
-            <p className="text-xs text-slate-500">
-              Resend code in <span className="font-bold text-indigo-600">{timer}s</span>
+            <p className="text-xs text-white/40">
+              Resend code in <span className="font-bold text-indigo-400">{timer}s</span>
             </p>
           ) : (
             <button
               type="button"
               onClick={handleResend}
-              className="text-xs font-bold text-indigo-600 hover:underline flex items-center justify-center gap-1.5 mx-auto"
+              className="text-xs font-bold text-indigo-400 hover:text-white hover:underline flex items-center justify-center gap-1.5 mx-auto"
             >
               <RefreshCcw className="w-3 h-3" />
               Resend OTP code

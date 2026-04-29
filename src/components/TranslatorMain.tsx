@@ -54,6 +54,8 @@ declare global {
 type Mode = 'typing' | 'image';
 type Tab = 'translator' | 'history' | 'saved';
 
+import InteractiveNeuralVortex from './ui/interactive-neural-vortex-background';
+
 export const TranslatorMain: React.FC = () => {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState<Tab>('translator');
@@ -356,260 +358,266 @@ export const TranslatorMain: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-      <header className="h-16 flex items-center justify-between px-4 md:px-10 bg-white border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
-            <Languages className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900">MiniTranslator</span>
-        </div>
-        <nav className="hidden md:flex gap-6 text-sm font-medium text-slate-500">
-          {['translator', 'history', 'saved'].map((t) => (
-            <button 
-              key={t}
-              onClick={() => setTab(t as Tab)}
-              className={`transition-colors cursor-pointer capitalize ${tab === t ? 'text-indigo-600 border-b-2 border-indigo-600 pb-1' : 'hover:text-slate-900'}`}
-            >
-              {t}
-            </button>
-          ))}
-        </nav>
-        
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex flex-col items-end mr-2">
-            <span className="text-xs font-bold text-slate-900 line-clamp-1">{user?.email}</span>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Session</span>
-          </div>
-          <button 
-            onClick={logout}
-            className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer border border-slate-100"
-            title="Logout"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 p-4 md:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
-        {tab === 'translator' ? (
-          <>
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-              <div className="flex bg-slate-200/50 p-1 rounded-xl w-full max-w-[256px]">
-                {['typing', 'image'].map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMode(m as Mode)}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all capitalize ${
-                      mode === m ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700 cursor-pointer'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-3 md:gap-4 w-full lg:w-auto">
-                <div className="flex-1 lg:flex-none flex items-center gap-2">
-                  <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-slate-400 font-bold">From</span>
-                  <select
-                    value={sourceLang}
-                    onChange={(e) => setSourceLang(e.target.value as Language)}
-                    className="w-full lg:w-36 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
-                  >
-                    {LANGUAGES.map(lang => (
-                      <option key={lang} value={lang}>{lang}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <button onClick={swapLanguages} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer">
-                  <ArrowRightLeft className="w-5 h-5" />
-                </button>
-
-                <div className="flex-1 lg:flex-none flex items-center gap-2">
-                  <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-slate-400 font-bold">To</span>
-                  <select
-                    value={targetLang}
-                    onChange={(e) => setTargetLang(e.target.value as Language)}
-                    className="w-full lg:w-36 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
-                  >
-                    {LANGUAGES.map(lang => (
-                      <option key={lang} value={lang}>{lang}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+    <InteractiveNeuralVortex>
+      <div className="min-h-screen flex flex-col font-sans text-white">
+        <header className="h-16 flex items-center justify-between px-4 md:px-10 bg-white/10 backdrop-blur-md border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Languages className="w-5 h-5 text-white" />
             </div>
+            <span className="text-xl font-bold tracking-tight text-white">MiniTranslator</span>
+          </div>
+          <nav className="hidden md:flex gap-6 text-sm font-medium text-white/60">
+            {['translator', 'history', 'saved'].map((t) => (
+              <button 
+                key={t}
+                onClick={() => setTab(t as Tab)}
+                className={`transition-colors cursor-pointer capitalize ${tab === t ? 'text-white border-b-2 border-white pb-1' : 'hover:text-white'}`}
+              >
+                {t}
+              </button>
+            ))}
+          </nav>
+          
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end mr-2 text-white">
+              <span className="text-xs font-bold line-clamp-1">{user?.email}</span>
+              <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Active Session</span>
+            </div>
+            <button 
+              onClick={logout}
+              className="p-2 rounded-xl bg-white/5 text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer border border-white/10"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
 
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[400px]">
-              <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Input {mode === 'typing' ? 'Text' : 'Image'}</span>
-                  <button onClick={clearInput} className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest hover:underline cursor-pointer">Clear</button>
+        <main className="flex-1 p-4 md:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full relative z-10">
+          {tab === 'translator' ? (
+            <>
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                <div className="flex bg-white/10 backdrop-blur-md p-1 rounded-xl w-full max-w-[256px] border border-white/10">
+                  {['typing', 'image'].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setMode(m as Mode)}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all capitalize ${
+                        mode === m ? 'bg-white/20 shadow-sm text-white' : 'text-white/40 hover:text-white/60 cursor-pointer'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
                 </div>
-                
-                <div className="flex-1 relative overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    {mode === 'typing' ? (
-                      <motion.div key="typing-area" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-                        <textarea
-                          placeholder="Type or paste your text here..."
-                          className="w-full h-full resize-none text-xl leading-relaxed outline-none text-slate-700 placeholder:text-slate-300 min-h-[200px]"
-                          value={inputText}
-                          onChange={(e) => setInputText(e.target.value)}
-                        />
-                        {isListening && (
-                          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none rounded-xl">
-                            <div className="flex gap-1 items-end h-8 mb-4">
-                              {[1, 2, 3, 4, 5].map((i) => (
-                                <motion.div key={i} animate={{ height: [8, 32, 8] }} transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }} className="w-1.5 bg-indigo-600 rounded-full" />
-                              ))}
-                            </div>
-                            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest animate-pulse">Listening & Transcribing...</span>
-                          </div>
-                        )}
-                      </motion.div>
-                    ) : (
-                      <motion.div key="image-area" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full min-h-[200px]">
-                        {!image ? (
-                          <div {...getRootProps()} className={`h-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${isDragActive ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-400 bg-slate-50'}`}>
-                            <input {...getInputProps()} />
-                            <Upload className="w-8 h-8 text-indigo-600 mb-2" />
-                            <p className="text-xs font-semibold text-slate-500">Drop image or click to upload</p>
-                          </div>
-                        ) : (
-                          <div className="relative h-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-                            <div className="relative inline-block">
-                              <img src={image} alt="Upload" className="max-w-full max-h-[500px] object-contain" />
-                              <div className="absolute inset-0 pointer-events-none">
-                                {segments.map((segment, idx) => (
-                                  <div key={idx} className="absolute bg-white/90 backdrop-blur-sm px-1 py-0.5 rounded shadow-sm text-[10px] font-medium text-indigo-800 border border-indigo-200/50 flex items-center justify-center text-center leading-tight whitespace-pre-wrap"
-                                    style={{ top: `${segment.boundingBox.y1 / 10}%`, left: `${segment.boundingBox.x1 / 10}%`, width: `${(segment.boundingBox.x2 - segment.boundingBox.x1) / 10}%`, height: `${(segment.boundingBox.y2 - segment.boundingBox.y1) / 10}%` }}
-                                  >
-                                    {segment.translation}
-                                  </div>
+
+                <div className="flex items-center gap-3 md:gap-4 w-full lg:w-auto">
+                  <div className="flex-1 lg:flex-none flex items-center gap-2">
+                    <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-white/40 font-bold">From</span>
+                    <select
+                      value={sourceLang}
+                      onChange={(e) => setSourceLang(e.target.value as Language)}
+                      className="w-full lg:w-36 bg-white/10 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 text-sm font-medium text-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
+                    >
+                      {LANGUAGES.map(lang => (
+                        <option key={lang} value={lang} className="bg-slate-900 text-white">{lang}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button onClick={swapLanguages} className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer">
+                    <ArrowRightLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex-1 lg:flex-none flex items-center gap-2">
+                    <span className="hidden sm:inline text-[10px] uppercase tracking-widest text-white/40 font-bold">To</span>
+                    <select
+                      value={targetLang}
+                      onChange={(e) => setTargetLang(e.target.value as Language)}
+                      className="w-full lg:w-36 bg-white/10 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 text-sm font-medium text-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
+                    >
+                      {LANGUAGES.map(lang => (
+                        <option key={lang} value={lang} className="bg-slate-900 text-white">{lang}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[400px]">
+                <div className="flex flex-col bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Input {mode === 'typing' ? 'Text' : 'Image'}</span>
+                    <button onClick={clearInput} className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest hover:underline cursor-pointer">Clear</button>
+                  </div>
+                  
+                  <div className="flex-1 relative overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      {mode === 'typing' ? (
+                        <motion.div key="typing-area" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+                          <textarea
+                            placeholder="Type or paste your text here..."
+                            className="w-full h-full resize-none text-xl leading-relaxed outline-none text-white placeholder:text-white/20 min-h-[200px] bg-transparent"
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                          />
+                          {isListening && (
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none rounded-xl">
+                              <div className="flex gap-1 items-end h-8 mb-4">
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                  <motion.div key={i} animate={{ height: [8, 32, 8] }} transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }} className="w-1.5 bg-indigo-500 rounded-full" />
                                 ))}
                               </div>
+                              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest animate-pulse">Listening...</span>
                             </div>
-                            <button onClick={() => { setImage(null); setSegments([]); }} className="absolute top-2 right-2 p-2 bg-white/90 backdrop-blur rounded-full text-slate-600 hover:text-red-500 shadow-sm cursor-pointer z-20">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      {mode === 'typing' ? `${inputText.length} / 5000 chars` : `${segments.length} segments detected`}
-                    </span>
-                    {mode === 'typing' && (
-                      <button onClick={isListening ? stopListening : startListening} className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-200 scale-110' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'}`}>
-                        {isListening ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }}><MicOff className="w-3.5 h-3.5" /></motion.div> : <Mic className="w-3.5 h-3.5" />}
-                      </button>
-                    )}
+                          )}
+                        </motion.div>
+                      ) : (
+                        <motion.div key="image-area" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full min-h-[200px]">
+                          {!image ? (
+                            <div {...getRootProps()} className={`h-full border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${isDragActive ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 hover:border-white/30 bg-white/5'}`}>
+                              <input {...getInputProps()} />
+                              <Upload className="w-8 h-8 text-indigo-400 mb-2" />
+                              <p className="text-xs font-semibold text-white/40">Drop image or click to upload</p>
+                            </div>
+                          ) : (
+                            <div className="relative h-full rounded-xl overflow-hidden bg-white/5 flex items-center justify-center border border-white/10">
+                              <div className="relative inline-block">
+                                <img src={image} alt="Upload" className="max-w-full max-h-[500px] object-contain" />
+                                <div className="absolute inset-0 pointer-events-none">
+                                  {segments.map((segment, idx) => (
+                                    <div key={idx} className="absolute bg-white/90 backdrop-blur-sm px-1 py-0.5 rounded shadow-sm text-[10px] font-medium text-indigo-800 border border-indigo-200/50 flex items-center justify-center text-center leading-tight whitespace-pre-wrap"
+                                      style={{ top: `${segment.boundingBox.y1 / 10}%`, left: `${segment.boundingBox.x1 / 10}%`, width: `${(segment.boundingBox.x2 - segment.boundingBox.x1) / 10}%`, height: `${(segment.boundingBox.y2 - segment.boundingBox.y1) / 10}%` }}
+                                    >
+                                      {segment.translation}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <button onClick={() => { setImage(null); setSegments([]); }} className="absolute top-2 right-2 p-2 bg-black/40 backdrop-blur rounded-full text-white/60 hover:text-red-400 shadow-sm cursor-pointer z-20">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </div>
-              </div>
 
-              <div className="flex flex-col bg-indigo-50 rounded-2xl shadow-sm border border-indigo-100 p-6 relative">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{targetLang} Translation</span>
-                  {output && (
-                    <div className="flex gap-2">
-                      <button onClick={() => speakText(output, targetLang)} className="p-1.5 text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"><Volume2 className="w-4 h-4" /></button>
-                      <button onClick={copyToClipboard} className="p-1.5 text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer">
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                      <button onClick={() => toggleSave()} className="p-1.5 text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"><Star className="w-4 h-4" /></button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 text-xl leading-relaxed text-slate-700 break-words overflow-y-auto">
-                  {isLoading ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
-                      <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-                      <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Translating...</p>
-                    </div>
-                  ) : error ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center"><p className="text-sm font-medium text-red-500">{error}</p></div>
-                  ) : output ? (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="whitespace-pre-wrap">{output}</motion.div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full opacity-25 select-none italic text-slate-400 whitespace-nowrap">Translation will appear here</div>
-                  )}
-                </div>
-
-                {output && (
-                  <div className="mt-4 pt-4 border-t border-indigo-100/50 flex justify-end">
-                    <button onClick={handleTranslate} className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest flex items-center gap-1.5 hover:underline cursor-pointer">
-                      <RefreshCw className="w-3.5 h-3.5" /> Regenerate
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-center pb-8">
-              <button onClick={handleTranslate} disabled={isLoading || (mode === 'typing' ? !inputText.trim() : !image)} className="group relative inline-flex items-center justify-center px-12 py-4 font-bold text-white transition-all duration-200 bg-indigo-600 rounded-full hover:bg-indigo-700 shadow-xl shadow-indigo-200 disabled:opacity-50 disabled:shadow-none hover:-translate-y-1 cursor-pointer overflow-hidden">
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span className="relative">Translate Now</span><ArrowRightLeft className="w-5 h-5 ml-2 group-hover:rotate-180 transition-transform duration-500" /></>}
-              </button>
-            </div>
-          </>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                {tab === 'history' ? <HistoryIcon className="w-5 h-5" /> : <Star className="w-5 h-5 text-yellow-500" />} {tab === 'history' ? 'Translation History' : 'Saved Translations'}
-              </h2>
-              {tab === 'history' && history.length > 0 && (
-                <button onClick={clearAllHistory} className="text-xs font-bold text-red-500 uppercase tracking-widest hover:underline cursor-pointer">Clear All</button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(tab === 'history' ? history : savedTranslations).length === 0 ? (
-                <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-200 opacity-50"><p className="text-slate-400 font-medium">No entries yet</p></div>
-              ) : (
-                (tab === 'history' ? history : savedTranslations).map(entry => (
-                  <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={entry.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3 group relative overflow-hidden">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      <span>{entry.sourceLang} → {entry.targetLang}</span>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity">{new Date(entry.timestamp).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-600 line-clamp-2 italic mb-2">{entry.mode === 'typing' ? entry.inputText : '[Image Translation]'}</p>
-                      <p className="text-sm font-semibold text-slate-900 line-clamp-3">{entry.output}</p>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                      <div className="flex gap-2">
-                        <button onClick={() => loadEntry(entry)} className="p-1.5 rounded-lg hover:bg-slate-100 text-indigo-600 transition-colors cursor-pointer" title="Open/Re-translate"><ExternalLink className="w-4 h-4" /></button>
-                        <button onClick={() => toggleSave(entry)} className={`p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer ${entry.isSaved ? 'text-yellow-500' : 'text-slate-400'}`} title={entry.isSaved ? "Unsave" : "Save"}><Star className={`w-4 h-4 ${entry.isSaved ? 'fill-current' : ''}`} /></button>
-                      </div>
-                      {tab === 'history' && (
-                        <button onClick={() => deleteHistory(entry.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                  <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] text-white/20 font-bold uppercase tracking-wider">
+                        {mode === 'typing' ? `${inputText.length} / 5000 chars` : `${segments.length} segments`}
+                      </span>
+                      {mode === 'typing' && (
+                        <button onClick={isListening ? stopListening : startListening} className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 scale-110' : 'text-white/40 hover:text-white hover:bg-white/10'}`}>
+                          {isListening ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }}><MicOff className="w-3.5 h-3.5" /></motion.div> : <Mic className="w-3.5 h-3.5" />}
+                        </button>
                       )}
                     </div>
-                  </motion.div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        )}
-      </main>
+                  </div>
+                </div>
 
-      <footer className="h-12 px-4 md:px-10 flex items-center justify-between bg-white border-t border-slate-100 shrink-0">
-        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Powered by Gemini AI Engine</p>
-        <div className="hidden sm:flex gap-6">
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Status: Optimal</span>
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight underline cursor-pointer">API Docs</span>
-        </div>
-      </footer>
-    </div>
+                <div className="flex flex-col bg-indigo-500/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-indigo-500/20 p-6 relative">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">{targetLang} Translation</span>
+                    {output && (
+                      <div className="flex gap-2">
+                        <button onClick={() => speakText(output, targetLang)} className="p-1.5 text-indigo-300 hover:text-white transition-colors cursor-pointer"><Volume2 className="w-4 h-4" /></button>
+                        <button onClick={copyToClipboard} className="p-1.5 text-indigo-300 hover:text-white transition-colors cursor-pointer">
+                          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                        <button onClick={() => toggleSave()} className="p-1.5 text-indigo-300 hover:text-white transition-colors cursor-pointer"><Star className="w-4 h-4" /></button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 text-xl leading-relaxed text-white break-words overflow-y-auto">
+                    {isLoading ? (
+                      <div className="flex flex-col items-center justify-center h-full gap-3 opacity-60">
+                        <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                        <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Translating...</p>
+                      </div>
+                    ) : error ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center"><p className="text-sm font-medium text-red-400">{error}</p></div>
+                    ) : output ? (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="whitespace-pre-wrap">{output}</motion.div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full opacity-20 select-none italic text-white whitespace-nowrap">Translation will appear here</div>
+                    )}
+                  </div>
+
+                  {output && (
+                    <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
+                      <button onClick={handleTranslate} className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest flex items-center gap-1.5 hover:underline cursor-pointer">
+                        <RefreshCw className="w-3.5 h-3.5" /> Regenerate
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-center pb-8">
+                <button 
+                  onClick={handleTranslate} 
+                  disabled={isLoading || (mode === 'typing' ? !inputText.trim() : !image)} 
+                  className="group relative inline-flex items-center justify-center px-12 py-4 font-bold text-white transition-all duration-200 bg-indigo-600 rounded-full hover:bg-indigo-700 shadow-xl shadow-indigo-500/40 disabled:opacity-50 disabled:shadow-none hover:-translate-y-1 cursor-pointer overflow-hidden border border-white/10"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span className="relative">Translate Now</span><ArrowRightLeft className="w-5 h-5 ml-2 group-hover:rotate-180 transition-transform duration-500" /></>}
+                </button>
+              </div>
+            </>
+          ) : (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  {tab === 'history' ? <HistoryIcon className="w-5 h-5" /> : <Star className="w-5 h-5 text-yellow-500" />} {tab === 'history' ? 'Translation History' : 'Saved Translations'}
+                </h2>
+                {tab === 'history' && history.length > 0 && (
+                  <button onClick={clearAllHistory} className="text-xs font-bold text-red-400 uppercase tracking-widest hover:underline cursor-pointer">Clear All</button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(tab === 'history' ? history : savedTranslations).length === 0 ? (
+                  <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white/5 rounded-2xl border border-dashed border-white/10 opacity-50"><p className="text-white/40 font-medium">No entries yet</p></div>
+                ) : (
+                  (tab === 'history' ? history : savedTranslations).map(entry => (
+                    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={entry.id} className="bg-white/5 backdrop-blur-lg p-4 rounded-xl shadow-sm border border-white/10 flex flex-col gap-3 group relative overflow-hidden">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                        <span>{entry.sourceLang} → {entry.targetLang}</span>
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white/50">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-white/60 line-clamp-2 italic mb-2">{entry.mode === 'typing' ? entry.inputText : '[Image Translation]'}</p>
+                        <p className="text-sm font-semibold text-white line-clamp-3">{entry.output}</p>
+                      </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                        <div className="flex gap-2">
+                          <button onClick={() => loadEntry(entry)} className="p-1.5 rounded-lg hover:bg-white/10 text-indigo-400 transition-colors cursor-pointer" title="Open/Re-translate"><ExternalLink className="w-4 h-4" /></button>
+                          <button onClick={() => toggleSave(entry)} className={`p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer ${entry.isSaved ? 'text-yellow-500' : 'text-white/30'}`} title={entry.isSaved ? "Unsave" : "Save"}><Star className={`w-4 h-4 ${entry.isSaved ? 'fill-current' : ''}`} /></button>
+                        </div>
+                        {tab === 'history' && (
+                          <button onClick={() => deleteHistory(entry.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors cursor-pointer" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </main>
+
+        <footer className="h-12 px-4 md:px-10 flex items-center justify-between bg-white/5 backdrop-blur-md border-t border-white/5 shrink-0">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Powered by Gemini AI Engine</p>
+          <div className="hidden sm:flex gap-6">
+            <span className="text-[10px] text-white/30 font-bold uppercase tracking-tight">Status: Optimal</span>
+            <span className="text-[10px] text-white/30 font-bold uppercase tracking-tight underline cursor-pointer">API Docs</span>
+          </div>
+        </footer>
+      </div>
+    </InteractiveNeuralVortex>
   );
 };

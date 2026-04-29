@@ -8,7 +8,10 @@ export class AuthService {
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase Signup Error:", JSON.stringify(error, null, 2));
+      throw error;
+    }
     if (!data.user) throw new Error("Signup failed");
 
     return email;
@@ -38,7 +41,10 @@ export class AuthService {
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase Login Error:", JSON.stringify(error, null, 2));
+      throw error;
+    }
     if (!data.user) throw new Error("Login failed");
 
     return {

@@ -40,42 +40,42 @@ export const Signup: React.FC = () => {
     <AuthLayout title="Create Account" subtitle="Join our AI translation community today.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {(error || passwordError) && (
-          <div className="bg-red-50 text-red-500 text-xs p-3 rounded-xl border border-red-100 mb-2">
+          <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-xl border border-red-500/20 mb-2">
             {typeof error === 'object' ? (error as any)?.message || JSON.stringify(error) : (error || passwordError)}
           </div>
         )}
         
         <div className="relative">
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <input
             type="email"
             placeholder="Email address"
             required
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium placeholder:text-white/20"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
 
         <div className="relative">
-          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <input
             type="password"
             placeholder="Password"
             required
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium placeholder:text-white/20"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        <div className="relative">
-          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <div className="relative" key="confirm-password">
+          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
           <input
             type="password"
             placeholder="Confirm Password"
             required
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium placeholder:text-white/20"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
@@ -84,7 +84,7 @@ export const Signup: React.FC = () => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50 mt-2"
+          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50 mt-2 border border-white/10"
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -97,9 +97,9 @@ export const Signup: React.FC = () => {
         </button>
 
         <div className="text-center mt-4">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-white/40">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-bold hover:underline">
+            <Link to="/login" className="text-indigo-400 font-bold hover:underline">
               Sign in
             </Link>
           </p>
