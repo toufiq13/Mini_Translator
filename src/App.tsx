@@ -8,6 +8,7 @@ import { VerifyOTP } from './components/auth/VerifyOTP';
 import { ForgotPassword } from './components/auth/ForgotPassword';
 import { ResetPassword } from './components/auth/ResetPassword';
 import { TranslatorMain } from './components/TranslatorMain';
+import { Profile } from './components/Profile';
 
 export default function App() {
   return (
@@ -27,6 +28,15 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TranslatorMain />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } 
           />

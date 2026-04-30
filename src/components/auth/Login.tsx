@@ -560,16 +560,17 @@ export const Login: React.FC = () => {
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all border border-white/5" 
-              size="lg" 
               disabled={isLoading}
+              className="w-full h-12 text-base font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all border border-indigo-500/10"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  <Loader2 className="size-5 animate-spin mr-2" />
                   Signing in...
                 </>
-              ) : "Log in"}
+              ) : (
+                "Log in"
+              )}
             </Button>
           </form>
 

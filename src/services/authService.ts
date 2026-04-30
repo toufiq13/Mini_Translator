@@ -32,6 +32,8 @@ export class AuthService {
       email: data.user.email!,
       isVerified: true,
       createdAt: new Date(data.user.created_at).getTime(),
+      name: data.user.user_metadata?.full_name,
+      avatarUrl: data.user.user_metadata?.avatar_url,
     };
   }
 
@@ -52,6 +54,8 @@ export class AuthService {
       email: data.user.email!,
       isVerified: true,
       createdAt: new Date(data.user.created_at).getTime(),
+      name: data.user.user_metadata?.full_name,
+      avatarUrl: data.user.user_metadata?.avatar_url,
     };
   }
 
@@ -95,6 +99,19 @@ export class AuthService {
       email: session.user.email!,
       isVerified: true,
       createdAt: new Date(session.user.created_at).getTime(),
+      name: session.user.user_metadata?.full_name,
+      avatarUrl: session.user.user_metadata?.avatar_url,
     };
+  }
+
+  static async updateProfile(updates: { name?: string; avatarUrl?: string }): Promise<void> {
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        full_name: updates.name,
+        avatar_url: updates.avatarUrl,
+      },
+    });
+
+    if (error) throw error;
   }
 }

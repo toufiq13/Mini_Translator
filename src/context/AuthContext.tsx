@@ -9,6 +9,7 @@ interface AuthContextType extends AuthState {
   verifyOTP: (email: string, code: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  updateProfile: (updates: { name?: string; avatarUrl?: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -48,6 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: session.user.email!,
             isVerified: true,
             createdAt: new Date(session.user.created_at).getTime(),
+            name: session.user.user_metadata?.full_name,
+            avatarUrl: session.user.user_metadata?.avatar_url,
           },
           isLoading: false,
           error: null,
@@ -117,6 +120,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (updates: { name?: string; avatarUrl?: string }) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      await AuthService.updateProfile(updates);
+      const user = await AuthService.getCurrentUser();
+      setState(prev => ({ ...prev, user, isLoading: false, error: null }));
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false, error: (error as Error).message }));
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await AuthService.logout();
@@ -127,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, signup, verifyOTP, forgotPassword, resetPassword, logout }}>
+    <AuthContext.Provider value={{ ...state, login, signup, verifyOTP, forgotPassword, resetPassword, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

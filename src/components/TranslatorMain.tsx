@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Languages, 
   Image as ImageIcon, 
@@ -70,6 +71,7 @@ export const TranslatorMain: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [history, setHistory] = useState<TranslationEntry[]>([]);
@@ -79,6 +81,21 @@ export const TranslatorMain: React.FC = () => {
     if (user) {
       loadData();
     }
+    
+    const handleVoicesChanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
   }, [user]);
 
   const loadData = async () => {
@@ -171,21 +188,66 @@ export const TranslatorMain: React.FC = () => {
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    const langMap: Record<string, string> = {
-      'English': 'en-US',
-      'Hindi': 'hi-IN',
-      'Spanish': 'es-ES',
-      'French': 'fr-FR',
-      'Persian': 'fa-IR',
-      'Chinese': 'zh-CN',
-      'Arabic': 'ar-SA'
-    };
-    
-    utterance.lang = langMap[lang] || 'en-US';
-    window.speechSynthesis.speak(utterance);
+    try {
+      // First, cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      const langMap: Record<string, string> = {
+        'English': 'en-US',
+        'Hindi': 'hi-IN',
+        'Spanish': 'es-ES',
+        'French': 'fr-FR',
+        'Persian': 'fa-IR',
+        'Chinese': 'zh-CN',
+        'Arabic': 'ar-SA'
+      };
+      
+      const targetLangCode = langMap[lang] || 'en-US';
+      utterance.lang = targetLangCode;
+      
+      // Get available voices
+      const voices = window.speechSynthesis.getVoices();
+      
+      // Try to find the ideal voice for the language
+      const voice = voices.find(v => v.lang === targetLangCode) || 
+                    voices.find(v => v.lang.startsWith(targetLangCode.split('-')[0]));
+      
+      if (voice) {
+        utterance.voice = voice;
+      }
+
+      utterance.onstart = () => {
+        setError(null); // Clear errors on start
+      };
+
+      utterance.onerror = (event) => {
+        // 'interrupted' error is common when cancel() is called and can be ignored
+        if (event.error !== 'interrupted') {
+          console.error('SpeechSynthesisUtterance error:', event);
+          setError(`Speech synthesis error: ${event.error}`);
+        }
+      };
+
+      // Add a small delay to avoid race conditions with cancel()
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+        
+        // Browser hack for speech synthesis getting stuck
+        const rpeeatResume = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(rpeeatResume);
+          } else {
+            window.speechSynthesis.resume();
+          }
+        }, 1000);
+      }, 100);
+
+    } catch (err) {
+      console.error('Speech synthesis execution failed:', err);
+      setError("Failed to play audio. Please try again.");
+    }
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -236,6 +298,10 @@ export const TranslatorMain: React.FC = () => {
 
       setOutput(finalOutput);
       setSegments(finalSegments);
+
+      if (autoPlay && finalOutput) {
+        speakText(finalOutput, targetLang);
+      }
 
       if (user) {
         try {
@@ -380,17 +446,20 @@ export const TranslatorMain: React.FC = () => {
           </nav>
           
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex flex-col items-end mr-2 text-white">
-              <span className="text-xs font-bold line-clamp-1">{user?.email}</span>
-              <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Active Session</span>
-            </div>
-            <button 
-              onClick={logout}
-              className="p-2 rounded-xl bg-white/5 text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer border border-white/10"
-              title="Logout"
+            <Link 
+              to="/profile" 
+              className="group flex items-center gap-3 p-1 pr-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
-            </button>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-lg overflow-hidden shrink-0">
+                {user?.name ? user.name.charAt(0).toUpperCase() : user?.email.charAt(0).toUpperCase()}
+              </div>
+              <div className="hidden sm:flex flex-col items-start max-w-[120px]">
+                <span className="text-xs font-bold text-white line-clamp-1 group-hover:text-indigo-300 transition-colors">
+                  {user?.name || user?.email.split('@')[0]}
+                </span>
+                <span className="text-[9px] text-white/40 font-bold uppercase tracking-widest leading-none">View Profile</span>
+              </div>
+            </Link>
           </div>
         </header>
 
@@ -511,9 +580,14 @@ export const TranslatorMain: React.FC = () => {
                         {mode === 'typing' ? `${inputText.length} / 5000 chars` : `${segments.length} segments`}
                       </span>
                       {mode === 'typing' && (
-                        <button onClick={isListening ? stopListening : startListening} className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 scale-110' : 'text-white/40 hover:text-white hover:bg-white/10'}`}>
-                          {isListening ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }}><MicOff className="w-3.5 h-3.5" /></motion.div> : <Mic className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => speakText(inputText, sourceLang)} disabled={!inputText.trim()} className="p-1.5 text-white/40 hover:text-white transition-colors cursor-pointer disabled:opacity-0" title="Listen to source">
+                            <Volume2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={isListening ? stopListening : startListening} className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer ${isListening ? 'bg-red-500 text-white shadow-lg shadow-red-500/20 scale-110' : 'text-white/40 hover:text-white hover:bg-white/10'}`}>
+                            {isListening ? <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }}><MicOff className="w-3.5 h-3.5" /></motion.div> : <Mic className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -523,7 +597,15 @@ export const TranslatorMain: React.FC = () => {
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">{targetLang} Translation</span>
                     {output && (
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setAutoPlay(!autoPlay)} 
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all border ${autoPlay ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}
+                          title="Speak translations automatically"
+                        >
+                          <Sparkles className={`w-3 h-3 ${autoPlay ? 'animate-pulse' : ''}`} />
+                          Auto-Play {autoPlay ? 'On' : 'Off'}
+                        </button>
                         <button onClick={() => speakText(output, targetLang)} className="p-1.5 text-indigo-300 hover:text-white transition-colors cursor-pointer"><Volume2 className="w-4 h-4" /></button>
                         <button onClick={copyToClipboard} className="p-1.5 text-indigo-300 hover:text-white transition-colors cursor-pointer">
                           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -562,9 +644,16 @@ export const TranslatorMain: React.FC = () => {
                 <button 
                   onClick={handleTranslate} 
                   disabled={isLoading || (mode === 'typing' ? !inputText.trim() : !image)} 
-                  className="group relative inline-flex items-center justify-center px-12 py-4 font-bold text-white transition-all duration-200 bg-indigo-600 rounded-full hover:bg-indigo-700 shadow-xl shadow-indigo-500/40 disabled:opacity-50 disabled:shadow-none hover:-translate-y-1 cursor-pointer overflow-hidden border border-white/10"
+                  className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 border border-indigo-400/20"
                 >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span className="relative">Translate Now</span><ArrowRightLeft className="w-5 h-5 ml-2 group-hover:rotate-180 transition-transform duration-500" /></>}
+                  {isLoading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      Translate Now
+                      <ArrowRightLeft className="w-5 h-5" />
+                    </>
+                  )}
                 </button>
               </div>
             </>

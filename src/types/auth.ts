@@ -5,6 +5,8 @@ export interface User {
   email: string;
   isVerified: boolean;
   createdAt: number;
+  name?: string;
+  avatarUrl?: string;
 }
 
 export interface AuthState {
